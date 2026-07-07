@@ -1,4 +1,4 @@
-# CLAUDE.md — Incident Triage Copilot
+# AGENTS.md — Incident Triage Copilot
 
 Contexto e comportamento para trabalho neste diretório.
 
