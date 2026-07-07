@@ -1,0 +1,49 @@
+log_timestamp,job_id,job_name,run_id,run_name,start_time,end_time,duration_seconds,result_state,state_message,task_key,error_message,error_trace,run_page_url,trigger
+2026-07-08 03:01:12,101,Error Test - ZeroDivisionError,90001,Error Test - ZeroDivisionError run,2026-07-08 03:00:00,2026-07-08 03:01:10,70,FAILED,Task failed with exception,main_task,ZeroDivisionError: integer division or modulo by zero,"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 12, in <module>
+    result = 10 / 0
+ZeroDivisionError: integer division or modulo by zero",https://dbc-fake.cloud.databricks.com/jobs/101/runs/90001,SCHEDULED
+2026-07-08 03:05:44,101,Error Test - ZeroDivisionError,90002,Error Test - ZeroDivisionError run,2026-07-08 03:04:00,2026-07-08 03:05:40,100,FAILED,Task failed with exception,main_task,ZeroDivisionError: integer division or modulo by zero,"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 12, in <module>
+    result = 10 / 0
+ZeroDivisionError: integer division or modulo by zero",https://dbc-fake.cloud.databricks.com/jobs/101/runs/90002,SCHEDULED
+2026-07-08 04:12:03,102,Error Test - KeyError,90101,Error Test - KeyError run,2026-07-08 04:10:00,2026-07-08 04:12:00,120,FAILED,Task failed with exception,main_task,KeyError: 'customer_id',"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 20, in <module>
+    value = record['customer_id']
+KeyError: 'customer_id'",https://dbc-fake.cloud.databricks.com/jobs/102/runs/90101,SCHEDULED
+2026-07-08 05:30:00,103,Error Test - ImportError,90201,Error Test - ImportError run,2026-07-08 05:28:00,2026-07-08 05:29:58,118,FAILED,Library installation failed for library,main_task,ImportError: No module named 'pandas_extra',"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 3, in <module>
+    import pandas_extra
+ModuleNotFoundError: No module named 'pandas_extra'",https://dbc-fake.cloud.databricks.com/jobs/103/runs/90201,SCHEDULED
+2026-07-08 06:00:00,104,Error Test - TypeError,90301,Error Test - TypeError run,2026-07-08 05:55:00,2026-07-08 05:59:50,290,FAILED,Task failed with exception,main_task,TypeError: unsupported operand type(s) for +: 'int' and 'str',"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 8, in <module>
+    total = 5 + ""five""
+TypeError: unsupported operand type(s) for +: 'int' and 'str'",https://dbc-fake.cloud.databricks.com/jobs/104/runs/90301,SCHEDULED
+2026-07-08 07:15:00,105,Error Test - FileNotFoundError,90401,Error Test - FileNotFoundError run,2026-07-08 07:10:00,2026-07-08 07:14:50,290,FAILED,Task failed with exception,main_task,FileNotFoundError: [Errno 2] No such file or directory: '/mnt/data/input.csv',"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 5, in <module>
+    open('/mnt/data/input.csv')
+FileNotFoundError: [Errno 2] No such file or directory: '/mnt/data/input.csv'",https://dbc-fake.cloud.databricks.com/jobs/105/runs/90401,SCHEDULED
+2026-07-08 08:45:00,106,Error Test - IndexError,90501,Error Test - IndexError run,2026-07-08 08:40:00,2026-07-08 08:44:50,290,FAILED,Task failed with exception,main_task,IndexError: list index out of range,"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 15, in <module>
+    x = items[10]
+IndexError: list index out of range",https://dbc-fake.cloud.databricks.com/jobs/106/runs/90501,SCHEDULED
+2026-07-08 09:00:00,107,Error Test - AttributeError,90601,Error Test - AttributeError run,2026-07-08 08:55:00,2026-07-08 08:59:50,290,FAILED,Task failed with exception,main_task,AttributeError: 'NoneType' object has no attribute 'strip',"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 18, in <module>
+    name.strip()
+AttributeError: 'NoneType' object has no attribute 'strip'",https://dbc-fake.cloud.databricks.com/jobs/107/runs/90601,SCHEDULED
+2026-07-08 10:00:00,108,Error Test - NameError,90701,Error Test - NameError run,2026-07-08 09:55:00,2026-07-08 09:59:50,290,FAILED,Task failed with exception,main_task,NameError: name 'undefined_var' is not defined,"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 9, in <module>
+    print(undefined_var)
+NameError: name 'undefined_var' is not defined",https://dbc-fake.cloud.databricks.com/jobs/108/runs/90701,SCHEDULED
+2026-07-08 11:00:00,109,Error Test - AssertionError,90801,Error Test - AssertionError run,2026-07-08 10:55:00,2026-07-08 10:59:50,290,FAILED,Task failed with exception,main_task,AssertionError: expected row count > 0,"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 22, in <module>
+    assert row_count > 0, ""expected row count > 0""
+AssertionError: expected row count > 0",https://dbc-fake.cloud.databricks.com/jobs/109/runs/90801,SCHEDULED
+2026-07-08 12:00:00,110,Error Test - ValueError,90901,Error Test - ValueError run,2026-07-08 11:55:00,2026-07-08 11:59:50,290,FAILED,Task failed with exception,main_task,ValueError: invalid literal for int() with base 10: 'N/A',"Traceback (most recent call last):
+  File ""/tmp/error_test.py"", line 14, in <module>
+    int('N/A')
+ValueError: invalid literal for int() with base 10: 'N/A'",https://dbc-fake.cloud.databricks.com/jobs/110/runs/90901,SCHEDULED
+2026-07-08 13:00:00,111,Nightly ETL - Large Join,91001,Nightly ETL - Large Join run,2026-07-08 12:00:00,2026-07-08 13:00:00,3600,TIMEDOUT,Run exceeded configured timeout,spark_task,SparkException: Job aborted due to stage failure,"Traceback (most recent call last):
+  File ""/tmp/etl_job.py"", line 40, in <module>
+    df.join(other_df, ""id"").collect()
+org.apache.spark.SparkException: Job aborted due to stage failure: Task 12 in stage 4.0 failed 4 times, most recent failure: OutOfMemoryError: Java heap space",https://dbc-fake.cloud.databricks.com/jobs/111/runs/91001,SCHEDULED

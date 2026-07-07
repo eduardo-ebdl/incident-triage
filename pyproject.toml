@@ -1,0 +1,19 @@
+[project]
+name = "incident-triage-copilot"
+version = "0.1.0"
+description = "AI/ML side of a Databricks job-failure triage copilot (portfolio project with a DE)"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+    "anthropic>=0.40",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+databricks = ["databricks-sql-connector>=3.0"]
+tracing = ["mlflow>=2.15"]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
