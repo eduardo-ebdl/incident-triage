@@ -10,8 +10,8 @@ from .schema import TriageResult
 from .triage import derive_transient_vs_real, triage_incident
 
 
-def run_digest(send_email: bool = False) -> str:
-    rows = fetch_incidents()
+def run_digest(send_email: bool = False, window: str = "1 day") -> str:
+    rows = fetch_incidents(window=window)
     groups = dedup_incidents(rows)
 
     results: list[TriageResult] = []

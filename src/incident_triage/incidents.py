@@ -9,8 +9,17 @@ from __future__ import annotations
 
 import csv
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
+
+# Real error_trace/error_message from the DE's ingestion carry ANSI color codes
+# (IPython-style traceback formatting) — strip them so prompts and emails stay readable.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
 
 CATALOG = "observability"
 SCHEMA = "dev"
@@ -51,10 +60,16 @@ def fetch_incidents(window: str = "1 day", backend: str | None = None) -> list[I
     """
     backend = backend or os.environ.get("INCIDENT_TRIAGE_BACKEND", "mock")
     if backend == "mock":
-        return _fetch_from_csv(FIXTURE_PATH)
-    if backend == "databricks":
-        return _fetch_from_databricks(window)
-    raise ValueError(f"unknown backend: {backend}")
+        rows = _fetch_from_csv(FIXTURE_PATH)
+    elif backend == "databricks":
+        rows = _fetch_from_databricks(window)
+    else:
+        raise ValueError(f"unknown backend: {backend}")
+
+    for row in rows:
+        row.error_message = _strip_ansi(row.error_message)
+        row.error_trace = _strip_ansi(row.error_trace)
+    return rows
 
 
 def _fetch_from_csv(path: Path) -> list[IncidentRow]:
