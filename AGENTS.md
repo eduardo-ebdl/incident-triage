@@ -25,7 +25,16 @@ sem `schema` explícito quebra quando algum campo vem `None` — e grava a mesma
 duplicação na escrita). Reportado ao DE.
 
 Não forçar RAG/ReAct — isso é Estágio 2 (Vector Search + LangGraph, planejado na spec no wolfs-den, ainda
-não iniciado).
+iniciado pelo P8).
+
+## Status — Estágio 2
+
+P8 foi implementado e verificado no Databricks: 18 resoluções sintéticas em
+`workspace.default.incident_triage_resolution_memory`, endpoint `incident-triage-ai-search` e índice
+`workspace.default.incident_triage_resolution_memory_index`. A consulta híbrida real para OOM em join
+retornou `synthetic-runbook/spark-join-oom` em primeiro lugar. O destino de arquitetura continua sendo
+`observability.dev`, mas a conta atual tem apenas `USE SCHEMA` ali; o DE precisa conceder `CREATE TABLE`
+para mover a memória. P9 (LangGraph) em diante ainda não foi iniciado.
 
 ## A "seam" — contrato de dados
 
@@ -90,8 +99,24 @@ tests/          dedup + schema, sem rede (rodam sempre contra o mock)
 ## Como trabalhar
 
 - Idioma: pt-BR nas respostas e nos comentários/commits.
-- Testes cobrindo dedup e schema não devem depender de rede/API key — rodam só contra o mock. A chamada
-  real ao Claude (P4) e a leitura real do Databricks são verificadas manualmente via
+- Testes cobrindo dedup, schema e fallback do pipeline não devem depender de rede/API key — rodam só contra
+  o mock. A chamada real ao Claude (P4) e a leitura real do Databricks são verificadas manualmente via
   `python scripts/run_digest.py`, não fazem parte do `pytest`.
 - Antes de reportar um estágio como "concluído", rodar o checkpoint real (pipeline ponta a ponta contra
   dado real, não só o mock) — foi assim que se pegou o P7 rodando em no-op silencioso por falta do `mlflow`.
+
+## Direção de produto / feedback
+
+- Não reescrever o core do Estágio 1 sem necessidade: o recorte atual está bom e já fecha o fluxo
+  operacional ponta a ponta.
+- Próximo ganho principal é deixar o projeto mais demonstrável para portfólio: exemplo sanitizado de
+  digest, seção de arquitetura mais clara, saída esperada e narrativa "entrada -> triagem -> digest".
+- Adicionar uma avaliação pequena e manual antes de sofisticar a arquitetura: para os incidentes
+  sintéticos, comparar classificação esperada vs. classificação do LLM e registrar acertos/discordâncias.
+- Fortalecer robustez operacional: se uma chamada Claude falhar, o digest deveria poder sair com item de
+  triagem indisponível; se SMTP falhar, o digest ainda deveria ser impresso/salvo.
+- Usar o MLflow tracing como evidência do comportamento do sistema: registrar modelo, quantidade de
+  incidentes, quantidade de grupos deduplicados e tempo total quando fizer sentido.
+- Estágio 2 só deve trazer RAG/LangGraph quando houver contexto útil para recuperar: runbooks sintéticos,
+  padrões conhecidos de exceção, histórico de incidentes ou documentação Databricks. Evitar "agent loop"
+  sem ganho concreto para a triagem.

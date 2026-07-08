@@ -12,6 +12,7 @@ dependencies = [
 [project.optional-dependencies]
 databricks = ["databricks-sql-connector>=3.0"]
 tracing = ["mlflow>=2.15"]
+rag = ["databricks-ai-search>=0.70"]
 dev = ["pytest>=8.0"]
 
 [tool.pytest.ini_options]

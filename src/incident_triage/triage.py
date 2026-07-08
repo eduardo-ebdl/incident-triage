@@ -21,7 +21,10 @@ TRIAGE_TOOL = {
     "input_schema": {
         "type": "object",
         "properties": {
-            "category": {"type": "string", "enum": [c.value for c in Category]},
+            "category": {
+                "type": "string",
+                "enum": [c.value for c in Category if c is not Category.UNKNOWN],
+            },
             "severity": {"type": "string", "enum": [s.value for s in Severity]},
             "root_cause": {
                 "type": "string",

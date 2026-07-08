@@ -1,0 +1,164 @@
+[
+  {
+    "resolution_id": "res-zero-division-001",
+    "error_type": "ZeroDivisionError",
+    "category": "code",
+    "error_pattern": "ZeroDivisionError while calculating a ratio because the denominator is zero.",
+    "resolution": "Validate the denominator before division and define the business behavior for zero totals, such as returning null or skipping the ratio.",
+    "source": "synthetic-runbook/python-zero-division",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-key-error-001",
+    "error_type": "KeyError",
+    "category": "data",
+    "error_pattern": "KeyError for a required field that is absent from an input record.",
+    "resolution": "Validate the input schema before transformation and handle optional fields with an explicit default. Alert on unexpected schema drift.",
+    "source": "synthetic-runbook/input-schema-drift",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-module-not-found-001",
+    "error_type": "ModuleNotFoundError",
+    "category": "dependency",
+    "error_pattern": "ModuleNotFoundError or ImportError for a Python package missing from the Databricks runtime.",
+    "resolution": "Declare the package in the job environment or cluster library configuration, pin a compatible version, and restart the Python environment.",
+    "source": "synthetic-runbook/python-dependencies",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-type-error-001",
+    "error_type": "TypeError",
+    "category": "code",
+    "error_pattern": "TypeError caused by combining incompatible Python types such as integer and string.",
+    "resolution": "Normalize the field type at the ingestion boundary and reject or quarantine values that cannot be converted safely.",
+    "source": "synthetic-runbook/type-normalization",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-file-not-found-001",
+    "error_type": "FileNotFoundError",
+    "category": "config",
+    "error_pattern": "FileNotFoundError for a configured input path or mounted file.",
+    "resolution": "Verify the configured path, storage mount, and upstream delivery. Fail early with a clear check before reading the file.",
+    "source": "synthetic-runbook/missing-input",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-index-error-001",
+    "error_type": "IndexError",
+    "category": "code",
+    "error_pattern": "IndexError because code assumes a list contains an element at a fixed position.",
+    "resolution": "Check collection length before positional access or replace positional assumptions with keyed records.",
+    "source": "synthetic-runbook/collection-bounds",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-none-attribute-001",
+    "error_type": "AttributeError",
+    "category": "data",
+    "error_pattern": "AttributeError on NoneType while calling a string or object method.",
+    "resolution": "Validate nullability before the transformation, handle null values explicitly, and quarantine records that violate the contract.",
+    "source": "synthetic-runbook/null-handling",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-name-error-001",
+    "error_type": "NameError",
+    "category": "code",
+    "error_pattern": "NameError for an undefined variable in notebook or job code.",
+    "resolution": "Correct the variable reference and add a unit test that executes the affected branch before deployment.",
+    "source": "synthetic-runbook/undefined-variable",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-empty-dataset-001",
+    "error_type": "AssertionError",
+    "category": "data",
+    "error_pattern": "AssertionError because an expected dataset or row count is empty.",
+    "resolution": "Check the upstream partition and filters, then replace the generic assertion with a data-quality expectation that records the failed condition.",
+    "source": "synthetic-runbook/empty-dataset",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-value-error-001",
+    "error_type": "ValueError",
+    "category": "data",
+    "error_pattern": "ValueError converting a placeholder such as N/A into a numeric type.",
+    "resolution": "Map known placeholders to null before casting and quarantine unexpected non-numeric values with their source record.",
+    "source": "synthetic-runbook/numeric-casting",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-spark-oom-001",
+    "error_type": "OutOfMemoryError",
+    "category": "resource",
+    "error_pattern": "Spark stage repeatedly fails with Java heap space or executor out-of-memory during a large join.",
+    "resolution": "Inspect join cardinality and skew, broadcast only genuinely small tables, repartition on a suitable key, and right-size executor memory after query tuning.",
+    "source": "synthetic-runbook/spark-join-oom",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-spark-timeout-001",
+    "error_type": "Timeout",
+    "category": "resource",
+    "error_pattern": "Databricks job times out while a Spark stage is still running.",
+    "resolution": "Identify the slow stage in the Spark UI, address skew or excessive shuffles, and increase the timeout only after removing the bottleneck.",
+    "source": "synthetic-runbook/spark-timeout",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-permission-denied-001",
+    "error_type": "PermissionDenied",
+    "category": "permission",
+    "error_pattern": "Permission denied while reading a Unity Catalog table, volume, or external location.",
+    "resolution": "Grant the job principal the minimum required USE CATALOG, USE SCHEMA, and object privilege, then verify storage credentials for external data.",
+    "source": "synthetic-runbook/unity-catalog-permissions",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-schema-inference-001",
+    "error_type": "CANNOT_DETERMINE_TYPE",
+    "category": "data",
+    "error_pattern": "Spark createDataFrame cannot infer a column type when values are null.",
+    "resolution": "Provide an explicit StructType to createDataFrame, especially for nullable fields, and add a regression case containing null values.",
+    "source": "synthetic-runbook/spark-explicit-schema",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-delta-concurrent-write-001",
+    "error_type": "ConcurrentAppendException",
+    "category": "resource",
+    "error_pattern": "Delta Lake write conflicts with another concurrent append or transaction.",
+    "resolution": "Retry the transaction with bounded backoff and reduce overlapping write predicates or coordinate writers by partition.",
+    "source": "synthetic-runbook/delta-concurrency",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-analysis-unresolved-column-001",
+    "error_type": "AnalysisException",
+    "category": "data",
+    "error_pattern": "Spark AnalysisException reports an unresolved column after an upstream schema change.",
+    "resolution": "Compare the current input schema with the transformation contract, update the renamed column deliberately, and add schema compatibility checks.",
+    "source": "synthetic-runbook/unresolved-column",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-cluster-startup-001",
+    "error_type": "ClusterStartupFailure",
+    "category": "resource",
+    "error_pattern": "Job cannot start because cluster provisioning or initialization scripts fail.",
+    "resolution": "Inspect the cluster event log and init-script output, verify instance availability and script dependencies, then retry on a supported node type.",
+    "source": "synthetic-runbook/cluster-startup",
+    "confirmed": true
+  },
+  {
+    "resolution_id": "res-rate-limit-001",
+    "error_type": "RateLimitError",
+    "category": "transient",
+    "error_pattern": "External API returns HTTP 429 or a rate-limit error during batch processing.",
+    "resolution": "Retry with exponential backoff and jitter, honor Retry-After, and cap request concurrency to the provider quota.",
+    "source": "synthetic-runbook/api-rate-limit",
+    "confirmed": true
+  }
+]

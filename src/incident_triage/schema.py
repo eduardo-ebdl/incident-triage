@@ -21,6 +21,7 @@ class RecommendedAction(str, Enum):
 
 
 class Category(str, Enum):
+    UNKNOWN = "unknown"
     TRANSIENT = "transient"
     CONFIG = "config"
     DATA = "data"
