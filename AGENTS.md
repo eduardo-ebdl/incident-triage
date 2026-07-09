@@ -29,12 +29,14 @@ iniciado pelo P8).
 
 ## Status — Estágio 2
 
-P8 foi implementado e verificado no Databricks: 18 resoluções sintéticas em
-`workspace.default.incident_triage_resolution_memory`, endpoint `incident-triage-ai-search` e índice
-`workspace.default.incident_triage_resolution_memory_index`. A consulta híbrida real para OOM em join
-retornou `synthetic-runbook/spark-join-oom` em primeiro lugar. O destino de arquitetura continua sendo
-`observability.dev`, mas a conta atual tem apenas `USE SCHEMA` ali; o DE precisa conceder `CREATE TABLE`
-para mover a memória.
+P8 foi implementado e verificado no Databricks: 18 resoluções sintéticas, endpoint
+`incident-triage-ai-search`. **Já está no destino de arquitetura definitivo:**
+`observability.dev.resolution_memory` + índice `observability.dev.resolution_memory_index`
+(movido do checkpoint provisório em `workspace.default` assim que o `CREATE TABLE` foi concedido —
+confirmado com uma tabela de teste real, não só "achando" que tinha sido liberado). Índice
+`ONLINE_NO_PENDING_UPDATE`, 18 linhas, busca híbrida re-verificada com o mesmo resultado de antes
+(`spark-join-oom` em 1º, score `1.000`). O checkpoint antigo em `workspace.default` ficou obsoleto
+(nada no repo aponta mais pra ele) e pode ser apagado.
 
 **Retrieval plugado no P4 (não é o P9 ainda).** `triage_incident` agora chama
 `search_past_resolutions(error_message)` antes de montar o prompt e passa até 3 casos recuperados pro

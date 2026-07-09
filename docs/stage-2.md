@@ -12,16 +12,16 @@ AI Search (formerly Vector Search).
 - Search mode: hybrid
 - Sync mode: triggered
 
-Architecture target:
+Current location (moved from the `workspace.default` dev checkpoint once `CREATE TABLE` on
+`observability.dev` was granted):
 
 - Source table: `observability.dev.resolution_memory`
-- Delta Sync index: `observability.dev.resolution_memory_index`
+- Delta Sync index: `observability.dev.resolution_memory_index` — verified `ONLINE_NO_PENDING_UPDATE`,
+  18 rows indexed, hybrid search re-verified with the same top result (`spark-join-oom`, score `1.000`).
 
-Real development checkpoint:
-
-- Source table: `workspace.default.incident_triage_resolution_memory`
-- Delta Sync index: `workspace.default.incident_triage_resolution_memory_index`
-- Endpoint state: `ONLINE`
+The earlier `workspace.default.incident_triage_resolution_memory(_index)` checkpoint is stale and
+should be dropped once nothing still points at it (nothing in this repo does — `.env.example`
+already targets `observability.dev`).
 
 The committed corpus contains 18 synthetic error-resolution pairs. Each result has a stable
 `resolution_id`, a resolution, and a synthetic source identifier that can later be enforced by
