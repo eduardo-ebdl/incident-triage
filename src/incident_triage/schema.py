@@ -39,6 +39,12 @@ class LLMTriage(BaseModel):
     root_cause: str = Field(description="1-2 sentence root cause, plain language")
     recommended_action: RecommendedAction
     confidence: float = Field(ge=0.0, le=1.0)
+    suggested_fix: str = Field(
+        default="", description="Grounded fix suggestion, empty if no past resolution applies"
+    )
+    sources: list[str] = Field(
+        default_factory=list, description="resolution_id values the suggested_fix is grounded in"
+    )
 
 
 class TriageResult(BaseModel):
@@ -58,3 +64,5 @@ class TriageResult(BaseModel):
     root_cause: str
     recommended_action: RecommendedAction
     confidence: float = Field(ge=0.0, le=1.0)
+    suggested_fix: str = ""
+    sources: list[str] = Field(default_factory=list)

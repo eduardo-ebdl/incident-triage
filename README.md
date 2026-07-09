@@ -37,12 +37,12 @@ During that validation, the pipeline surfaced a real issue in the ingestion job 
 `createDataFrame()` call without an explicit schema failed when one field was `None`, and the
 same failure was written multiple times to the table.
 
-No RAG or agent loop is included yet. That belongs to Stage 2, after the basic operational
-workflow is demonstrable and reliable.
-
-Stage 2 has started with the synthetic resolution-memory contract and Databricks AI Search
-provisioner. See [docs/stage-2.md](docs/stage-2.md) for its exact status; the LangGraph agent
-and grounding guardrail are not implemented yet.
+Stage 2 has started: a synthetic resolution-memory corpus, a Databricks AI Search provisioner,
+and single-shot retrieval-augmented triage wired into the Claude call — each incident's error
+message is used to retrieve up to 3 past resolutions, and the model only cites a fix when one
+genuinely applies. See [docs/stage-2.md](docs/stage-2.md) for the exact status; the LangGraph
+agent (P9), retrieval reranking (P10), and a code-level grounding guardrail (P11) are not
+implemented yet — today "don't force a match" is a prompt instruction, not an enforced check.
 
 The intermediate Stage 1.5 work is also complete: portfolio documentation, a sanitized digest,
 a manual evaluation checklist, per-incident LLM fallback, and SMTP failure handling.

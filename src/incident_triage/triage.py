@@ -6,10 +6,10 @@ configured, no-op otherwise (keeps local dev without a tracking server unblocked
 
 from __future__ import annotations
 
-import json
 import os
 
 from .dedup import IncidentGroup
+from .memory import ResolutionMatch
 from .schema import Category, LLMTriage, RecommendedAction, Severity
 
 MODEL_DEV = "claude-haiku-4-5"
@@ -36,26 +36,49 @@ TRIAGE_TOOL = {
                 "enum": [a.value for a in RecommendedAction],
             },
             "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "suggested_fix": {
+                "type": "string",
+                "description": "Concrete fix grounded in a retrieved past resolution, if one "
+                "genuinely applies. Empty string if none of the retrieved cases fit.",
+            },
+            "sources": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "resolution_id values from the retrieved cases that "
+                "suggested_fix is grounded in. Empty array if suggested_fix is empty.",
+            },
         },
-        "required": ["category", "severity", "root_cause", "recommended_action", "confidence"],
+        "required": [
+            "category",
+            "severity",
+            "root_cause",
+            "recommended_action",
+            "confidence",
+            "suggested_fix",
+            "sources",
+        ],
     },
 }
 
 SYSTEM_PROMPT = (
     "You are triaging a failed Databricks job run for an on-call data engineer. "
-    "You get the error message, the stack trace, and the run's result_state. "
+    "You get the error message, the stack trace, the run's result_state, and up to a few "
+    "retrieved past resolutions that may or may not be relevant. "
     "Judge severity and category from evidence in the trace only — do not invent causes "
-    "not supported by the text. Call submit_triage with your judgment."
+    "not supported by the text. Only fill suggested_fix (and cite its sources) when a "
+    "retrieved case actually matches this error; otherwise leave suggested_fix empty and "
+    "sources as an empty array — do not force a match. Call submit_triage with your judgment."
 )
 
 
-def _user_prompt(group: IncidentGroup) -> str:
+def _user_prompt(group: IncidentGroup, matches: list[ResolutionMatch]) -> str:
     row = group.representative
     occurrence_note = (
         f"\n\n(This exact error occurred {group.occurrences} times in today's window.)"
         if group.occurrences > 1
         else ""
     )
+    matches_block = _format_matches(matches)
     return (
         f"job_name: {row.job_name}\n"
         f"task_key: {row.task_key}\n"
@@ -64,7 +87,36 @@ def _user_prompt(group: IncidentGroup) -> str:
         f"error_message: {row.error_message}\n"
         f"error_trace:\n{row.error_trace}"
         f"{occurrence_note}"
+        f"{matches_block}"
     )
+
+
+def _format_matches(matches: list[ResolutionMatch]) -> str:
+    if not matches:
+        return "\n\nRetrieved past resolutions: none found."
+    lines = ["\n\nRetrieved past resolutions (may or may not be relevant):"]
+    for match in matches:
+        lines.append(
+            f"- resolution_id={match.resolution_id} (score={match.score:.3f}, "
+            f"source={match.source})\n"
+            f"  pattern: {match.error_pattern}\n"
+            f"  resolution: {match.resolution}"
+        )
+    return "\n".join(lines)
+
+
+def _retrieve_grounding(row) -> list[ResolutionMatch]:
+    """Best-effort retrieval — Stage 2 (AI Search) is optional infra, not a hard dependency.
+
+    Missing env vars, missing databricks-ai-search install, or a network hiccup here
+    should degrade to "no grounding found", not break Stage 1's digest.
+    """
+    try:
+        from .memory import search_past_resolutions
+
+        return search_past_resolutions(row.error_message, num_results=3)
+    except Exception:
+        return []
 
 
 def _maybe_trace(fn):
@@ -83,13 +135,15 @@ def triage_incident(group: IncidentGroup, model: str | None = None) -> LLMTriage
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     model = model or os.environ.get("INCIDENT_TRIAGE_MODEL", MODEL_DEV)
 
+    matches = _retrieve_grounding(group.representative)
+
     response = client.messages.create(
         model=model,
-        max_tokens=512,
+        max_tokens=768,
         system=SYSTEM_PROMPT,
         tools=[TRIAGE_TOOL],
         tool_choice={"type": "tool", "name": "submit_triage"},
-        messages=[{"role": "user", "content": _user_prompt(group)}],
+        messages=[{"role": "user", "content": _user_prompt(group, matches)}],
     )
 
     tool_use = next(block for block in response.content if block.type == "tool_use")

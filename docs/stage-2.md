@@ -71,8 +71,18 @@ python scripts/search_resolution_memory.py "OutOfMemoryError during a large Spar
   from the schema owner. The real hybrid-search checkpoint returned
   `synthetic-runbook/spark-join-oom` first for an OOM during a large Spark join, with score
   `1.000`.
-- Validation: 13 local tests passed, including the seed contract and parsing of AI Search
-  results without network access.
-- P9 LangGraph agent: not started.
+- **Retrieval wired into the triage call (P4).** `triage_incident` now calls
+  `search_past_resolutions(error_message)` and passes up to 3 retrieved cases into the prompt.
+  The model is instructed to only fill `suggested_fix`/`sources` when a retrieved case genuinely
+  applies, otherwise leave both empty rather than force a match. Verified against the real table
+  and index: 9 of 11 incidents came back with a grounded, cited fix; 2 (`AttributeError`,
+  `AssertionError`) correctly came back empty because none of the retrieved cases matched.
+  `_retrieve_grounding` degrades to an empty list (not an exception) when Stage 2 isn't
+  configured, so Stage 1 keeps working standalone.
+- Validation: 16 local tests passed, including the seed contract, AI Search response parsing,
+  and grounding degradation without network access.
+- P9 LangGraph agent: not started. What exists today is single-shot retrieval-augmented triage,
+  not an agent that decides which tools to call or investigates in a loop.
 - P10 retrieval fusion/reranking: not started.
-- P11 grounding guardrail: not started.
+- P11 grounding guardrail: not started as a hard check — today it is prompt instruction only
+  ("don't force a match"), not an enforced, code-level verification that a citation is valid.

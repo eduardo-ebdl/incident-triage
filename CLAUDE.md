@@ -34,7 +34,20 @@ P8 foi implementado e verificado no Databricks: 18 resoluções sintéticas em
 `workspace.default.incident_triage_resolution_memory_index`. A consulta híbrida real para OOM em join
 retornou `synthetic-runbook/spark-join-oom` em primeiro lugar. O destino de arquitetura continua sendo
 `observability.dev`, mas a conta atual tem apenas `USE SCHEMA` ali; o DE precisa conceder `CREATE TABLE`
-para mover a memória. P9 (LangGraph) em diante ainda não foi iniciado.
+para mover a memória.
+
+**Retrieval plugado no P4 (não é o P9 ainda).** `triage_incident` agora chama
+`search_past_resolutions(error_message)` antes de montar o prompt e passa até 3 casos recuperados pro
+Claude, pedindo pra só preencher `suggested_fix`/`sources` quando um caso genuinamente se aplica (senão
+deixar vazio — sem forçar match). Verificado contra dado real: 9 dos 11 incidentes vieram com fix
+fundamentado e fonte citada; os outros 2 (`AttributeError`, `AssertionError`) ficaram sem sugestão porque
+nenhum dos 3 casos recuperados batia de verdade — o guardrail funcionou. `_retrieve_grounding` degrada
+silenciosamente pra lista vazia se o Estágio 2 não estiver configurado (sem token, sem índice, sem rede),
+então quem só tem o Estágio 1 rodando não quebra.
+
+Isso ainda é uma chamada única com contexto injetado, não um agente. **P9 (LangGraph ReAct)** — onde o
+agente decide ativamente quais tools chamar e investiga em loop — continua não iniciado. P10
+(rerank/fusão) e P11 (guardrail formal de grounding, hoje é só instrução de prompt) também não.
 
 ## Status — Estágio 1.5
 
@@ -75,15 +88,18 @@ via `--window` no script ou `run_digest(window=...)`).
 
 ```
 src/incident_triage/
-  schema.py     P2 — TriageResult, LLMTriage (Pydantic)
+  schema.py     P2 — TriageResult, LLMTriage (Pydantic; inclui suggested_fix/sources do P8)
   incidents.py  P1 — fetch_incidents(); backend "databricks" (real) ou "mock" (CSV); strip de ANSI aqui
   dedup.py      P3 — hash do error_message, agrupa em IncidentGroup
-  triage.py     P4 — chamada Claude (tool-calling), + P7 (@mlflow.trace, no-op se mlflow não instalado)
+  memory.py     P8 — ResolutionRecord/Match, load_resolution_seed, search_past_resolutions (AI Search)
+  triage.py     P4 — retrieval (P8) + chamada Claude (tool-calling), + P7 (@mlflow.trace)
   aggregate.py  P5 — agrupa por job/severidade
-  digest.py     P6 — formata texto + envia SMTP
-  pipeline.py   orquestra P1→P7 (run_digest)
-scripts/run_digest.py   entrypoint CLI (--send, --window)
-tests/          dedup + schema, sem rede (rodam sempre contra o mock)
+  digest.py     P6 — formata texto (com suggested fix quando houver) + envia SMTP
+  pipeline.py   orquestra P1→P7 (run_digest), fallback por incidente se o LLM falhar
+scripts/run_digest.py            entrypoint CLI (--send, --window)
+scripts/provision_ai_search.py   provisiona a Delta table + índice do P8 (idempotente)
+scripts/search_resolution_memory.py   smoke test manual do retrieval
+tests/          dedup, schema, memory, pipeline, triage — sem rede (mock ou fakes injetados)
 ```
 
 ## Ambiente
