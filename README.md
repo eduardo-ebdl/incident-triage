@@ -44,6 +44,9 @@ Stage 2 has started with the synthetic resolution-memory contract and Databricks
 provisioner. See [docs/stage-2.md](docs/stage-2.md) for its exact status; the LangGraph agent
 and grounding guardrail are not implemented yet.
 
+The intermediate Stage 1.5 work is also complete: portfolio documentation, a sanitized digest,
+a manual evaluation checklist, per-incident LLM fallback, and SMTP failure handling.
+
 ## Data contract
 
 Table: `observability.dev.job_error_logs` (owned and populated by the DE side).

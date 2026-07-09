@@ -7,12 +7,21 @@ AI Search (formerly Vector Search).
 ## P8 resources
 
 - Seed corpus: `data/resolution_memory.json`
-- Source table: `observability.dev.resolution_memory`
 - AI Search endpoint: `incident-triage-ai-search`
-- Delta Sync index: `observability.dev.resolution_memory_index`
 - Embedding endpoint: `databricks-qwen3-embedding-0-6b`
 - Search mode: hybrid
 - Sync mode: triggered
+
+Architecture target:
+
+- Source table: `observability.dev.resolution_memory`
+- Delta Sync index: `observability.dev.resolution_memory_index`
+
+Real development checkpoint:
+
+- Source table: `workspace.default.incident_triage_resolution_memory`
+- Delta Sync index: `workspace.default.incident_triage_resolution_memory_index`
+- Endpoint state: `ONLINE`
 
 The committed corpus contains 18 synthetic error-resolution pairs. Each result has a stable
 `resolution_id`, a resolution, and a synthetic source identifier that can later be enforced by
@@ -60,7 +69,10 @@ python scripts/search_resolution_memory.py "OutOfMemoryError during a large Spar
   `workspace.default.incident_triage_resolution_memory` because the current account has only
   `USE SCHEMA` on `observability.dev`; moving the table and index there requires `CREATE TABLE`
   from the schema owner. The real hybrid-search checkpoint returned
-  `synthetic-runbook/spark-join-oom` first for an OOM during a large Spark join.
+  `synthetic-runbook/spark-join-oom` first for an OOM during a large Spark join, with score
+  `1.000`.
+- Validation: 13 local tests passed, including the seed contract and parsing of AI Search
+  results without network access.
 - P9 LangGraph agent: not started.
 - P10 retrieval fusion/reranking: not started.
 - P11 grounding guardrail: not started.

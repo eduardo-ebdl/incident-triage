@@ -36,6 +36,13 @@ retornou `synthetic-runbook/spark-join-oom` em primeiro lugar. O destino de arqu
 `observability.dev`, mas a conta atual tem apenas `USE SCHEMA` ali; o DE precisa conceder `CREATE TABLE`
 para mover a memória. P9 (LangGraph) em diante ainda não foi iniciado.
 
+## Status — Estágio 1.5
+
+Concluído: README ampliado para portfólio, digest sanitizado em `docs/sample_digest.md`, plano de
+avaliação manual em `docs/evaluation.md`, fallback por incidente quando Claude falha e preservação do
+corpo do digest quando SMTP falha. `unknown` existe apenas como fallback interno e não é oferecido ao
+LLM. Após o P8, a suíte local ficou com 13 testes passando.
+
 ## A "seam" — contrato de dados
 
 Catálogo/schema/tabela confirmados: **`observability.dev.job_error_logs`**
