@@ -51,6 +51,30 @@ Isso ainda é uma chamada única com contexto injetado, não um agente. **P9 (La
 agente decide ativamente quais tools chamar e investiga em loop — continua não iniciado. P10
 (rerank/fusão) e P11 (guardrail formal de grounding, hoje é só instrução de prompt) também não.
 
+### Preparação do P9 — colunas de metadata do run (10/07)
+
+O DE adicionou 8 colunas novas na `job_error_logs`: `cluster_spec`, `spark_version`, `num_workers`,
+`spark_conf`, `libraries`, `attempt_number`, `repair_history`, `task_run_id`. Verificado contra a API
+real de Jobs (`/api/2.2/jobs/runs/get`) qual dessas vai dar certo:
+
+- **Nunca vão vir preenchidas — os fake jobs rodam em compute serverless:** `cluster_spec`,
+  `spark_conf`, `num_workers`, `spark_version`. Confirmado: a resposta real da API não tem
+  `new_cluster`, `existing_cluster_id`, `cluster_instance` nem `spark_version` — só
+  `"environment_key": "default"`. Não é bug de ingestão, é a natureza do serverless (sem cluster
+  fixo pra descrever). **Não esperar essas 4 no design do P9** — o tool `get_run_metadata` não deve
+  contar com elas. Não vale a pena pedir ao DE pra "corrigir"; não tem o que corrigir.
+- **Deveriam vir preenchidas, mas ainda vêm NULL — gap real de ingestão:** `attempt_number`,
+  `repair_history`. A API já devolve isso de bandeja (ex.: task repetida com `attempt_number: 0`
+  depois `attempt_number: 1` no mesmo `run_id`, evidência de retry/repair) — só falta o código do
+  DE extrair e gravar. Continua pendente do lado dele.
+- **Descoberta nova, não pedida ainda:** a API também devolve `queue_duration` e, quando aplicável,
+  `queue_reason` (ex.: `"Queued due to reaching maximum number of allowed active runs (5)"`) —
+  sinal genuinamente útil em serverless (limite de concorrência), e não tem coluna nenhuma pra isso
+  hoje. Vale adicionar aos pedidos pro DE quando for pedir `attempt_number`/`repair_history`.
+- **Não apagar as 4 colunas serverless da tabela real.** O código de ingestão do DE provavelmente
+  ainda as referencia num INSERT/MERGE; ficarem sempre `NULL` é inofensivo, mas um `ALTER TABLE DROP
+  COLUMN` por fora pode quebrar o próximo run dele se ele não tiver alinhado a remoção antes.
+
 ## Status — Estágio 1.5
 
 Concluído: README ampliado para portfólio, digest sanitizado em `docs/sample_digest.md`, plano de
