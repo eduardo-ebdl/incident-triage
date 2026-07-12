@@ -24,8 +24,7 @@ e o email chegou formatado corretamente. Achado real no caminho: o próprio job 
 sem `schema` explícito quebra quando algum campo vem `None` — e grava a mesma falha 3x na tabela (bug de
 duplicação na escrita). Reportado ao DE.
 
-Não forçar RAG/ReAct — isso é Estágio 2 (Vector Search + LangGraph, planejado na spec no wolfs-den, ainda
-iniciado pelo P8).
+Não forçar ReAct antes da hora — o Estágio 2 já foi iniciado pelo P8, mas LangGraph só entra no P9.
 
 ## Status — Estágio 2
 
@@ -35,8 +34,8 @@ P8 foi implementado e verificado no Databricks: 18 resoluções sintéticas, end
 (movido do checkpoint provisório em `workspace.default` assim que o `CREATE TABLE` foi concedido —
 confirmado com uma tabela de teste real, não só "achando" que tinha sido liberado). Índice
 `ONLINE_NO_PENDING_UPDATE`, 18 linhas, busca híbrida re-verificada com o mesmo resultado de antes
-(`spark-join-oom` em 1º, score `1.000`). O checkpoint antigo em `workspace.default` ficou obsoleto
-(nada no repo aponta mais pra ele) e pode ser apagado.
+(`spark-join-oom` em 1º, score `1.000`). A tabela e o índice provisórios em `workspace.default` foram
+apagados em 11/07; só o destino definitivo permanece.
 
 **Retrieval plugado no P4 (não é o P9 ainda).** `triage_incident` agora chama
 `search_past_resolutions(error_message)` antes de montar o prompt e passa até 3 casos recuperados pro
@@ -51,7 +50,7 @@ Isso ainda é uma chamada única com contexto injetado, não um agente. **P9 (La
 agente decide ativamente quais tools chamar e investiga em loop — continua não iniciado. P10
 (rerank/fusão) e P11 (guardrail formal de grounding, hoje é só instrução de prompt) também não.
 
-### Preparação do P9 — colunas de metadata do run (10/07)
+### Preparação do P9 — colunas de metadata do run (verificado em 11/07)
 
 O DE adicionou 8 colunas novas na `job_error_logs`: `cluster_spec`, `spark_version`, `num_workers`,
 `spark_conf`, `libraries`, `attempt_number`, `repair_history`, `task_run_id`. Verificado contra a API
@@ -63,10 +62,12 @@ real de Jobs (`/api/2.2/jobs/runs/get`) qual dessas vai dar certo:
   `"environment_key": "default"`. Não é bug de ingestão, é a natureza do serverless (sem cluster
   fixo pra descrever). **Não esperar essas 4 no design do P9** — o tool `get_run_metadata` não deve
   contar com elas. Não vale a pena pedir ao DE pra "corrigir"; não tem o que corrigir.
-- **Deveriam vir preenchidas, mas ainda vêm NULL — gap real de ingestão:** `attempt_number`,
-  `repair_history`. A API já devolve isso de bandeja (ex.: task repetida com `attempt_number: 0`
-  depois `attempt_number: 1` no mesmo `run_id`, evidência de retry/repair) — só falta o código do
-  DE extrair e gravar. Continua pendente do lado dele.
+- **Já chegam parcialmente:** `task_run_id` e `attempt_number` estão preenchidos em 46 das 65 linhas
+  atuais. As 19 linhas antigas continuam nulas. O P9 pode usar esses campos, mas `IncidentRow` ainda
+  não os lê.
+- **Gap real de ingestão:** `repair_history` segue nulo nas 65 linhas, embora a API exponha o histórico
+  de repair/retry. `libraries` também está nulo nas 65 linhas e precisa ser tratado como contexto
+  opcional, não como pré-requisito do agente.
 - **Descoberta nova, não pedida ainda:** a API também devolve `queue_duration` e, quando aplicável,
   `queue_reason` (ex.: `"Queued due to reaching maximum number of allowed active runs (5)"`) —
   sinal genuinamente útil em serverless (limite de concorrência), e não tem coluna nenhuma pra isso
@@ -80,7 +81,7 @@ real de Jobs (`/api/2.2/jobs/runs/get`) qual dessas vai dar certo:
 Concluído: README ampliado para portfólio, digest sanitizado em `docs/sample_digest.md`, plano de
 avaliação manual em `docs/evaluation.md`, fallback por incidente quando Claude falha e preservação do
 corpo do digest quando SMTP falha. `unknown` existe apenas como fallback interno e não é oferecido ao
-LLM. Após o P8, a suíte local ficou com 13 testes passando.
+LLM. A suíte local está com 16 testes passando.
 
 ## A "seam" — contrato de dados
 
@@ -103,8 +104,17 @@ Catálogo/schema/tabela confirmados: **`observability.dev.job_error_logs`**
 | error_trace | string — **input-chave da IA**, real vem com códigos ANSI de cor (stripados no P1) |
 | run_page_url | string |
 | trigger | string |
+| cluster_spec | string — sempre `NULL` nos fake jobs serverless |
+| spark_version | string — sempre `NULL` nos fake jobs serverless |
+| num_workers | bigint — sempre `NULL` nos fake jobs serverless |
+| spark_conf | string — sempre `NULL` nos fake jobs serverless |
+| libraries | string — atualmente `NULL`; contexto opcional do P9 |
+| attempt_number | bigint — preenchido nas execuções ingeridas após a evolução do schema |
+| repair_history | string — atualmente `NULL`; gap de ingestão |
+| task_run_id | bigint — preenchido nas execuções ingeridas após a evolução do schema |
 
-Não existe `task_run_id` na tabela — não é bloqueio (jobs são single-task; `run_id` já identifica a execução).
+O código atual de P1 ainda seleciona apenas as 15 colunas originais. As 8 colunas novas estão na Delta
+table, mas só serão incorporadas ao `IncidentRow` durante o P9.
 
 Os fake jobs do DE foram semeados **uma vez** (19/06), não rodam diariamente — por isso `fetch_incidents`
 aceita `window` (default `"1 day"`, mas pra ver os dados de teste hoje é preciso algo como `"90 day"`,
@@ -142,14 +152,16 @@ tests/          dedup, schema, memory, pipeline, triage — sem rede (mock ou fa
 - **Tracing:** `mlflow` é dependência opcional (`pip install -e ".[tracing]"`); sem ele, `@mlflow.trace`
   vira no-op silencioso (checar se está instalado antes de assumir que P7 está gerando traces!). Tracking
   store local por padrão (`mlflow.db`, sqlite — gitignored).
-- **Instalação:** `pip install -e ".[dev,databricks,tracing]"` dentro do `.venv` já criado na raiz do repo.
+- **Instalação:** `pip install -e ".[dev,databricks,tracing,rag]"` dentro da `.venv` da raiz do repo.
+  A `.venv` foi recriada em 11/07 com Python 3.12.13, dependências verificadas por `pip check` e
+  reconhecida/reindexada automaticamente pelo PyCharm.
 - `.env` nunca vai pro git (está no `.gitignore`, junto com `.venv/`, `.idea/`, `mlflow.db`).
 
 ## Como trabalhar
 
 - Idioma: pt-BR nas respostas e nos comentários/commits.
-- Testes cobrindo dedup, schema e fallback do pipeline não devem depender de rede/API key — rodam só contra
-  o mock. A chamada real ao Claude (P4) e a leitura real do Databricks são verificadas manualmente via
+- Testes cobrindo dedup, schema, memory, triage e fallback do pipeline não devem depender de rede/API key —
+  rodam contra mock/fakes. A chamada real ao Claude (P4) e a leitura real do Databricks são verificadas via
   `python scripts/run_digest.py`, não fazem parte do `pytest`.
 - Antes de reportar um estágio como "concluído", rodar o checkpoint real (pipeline ponta a ponta contra
   dado real, não só o mock) — foi assim que se pegou o P7 rodando em no-op silencioso por falta do `mlflow`.

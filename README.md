@@ -20,6 +20,8 @@ career-planning vault (not published here).
   error pattern.
 - Forces Claude to return a structured triage object with category, severity, root cause,
   recommended action, and confidence.
+- Retrieves up to three similar synthetic resolutions and includes a suggested fix only when
+  Claude finds a genuine match, citing the resolution identifiers used.
 - Aggregates triage results by job and severity.
 - Sends a plain-text SMTP digest suitable for a daily incident review.
 - Wraps the LLM triage call with optional MLflow tracing.
@@ -58,9 +60,13 @@ Important columns consumed by this repo:
 - `error_message`, `error_trace`
 - `run_page_url`
 - `log_timestamp`, `start_time`, `end_time`, `duration_seconds`, `trigger`
+- P9 preparation columns: `task_run_id`, `attempt_number`, `repair_history`, `libraries`,
+  `cluster_spec`, `spark_version`, `num_workers`, `spark_conf`
 
-The current table does not include `task_run_id`; jobs are single-task, so `run_id` identifies
-the execution for the current scope.
+The P9 preparation columns already exist in Delta, but the current `IncidentRow` and P1 query do
+not consume them yet. `task_run_id` and `attempt_number` are populated for newer rows;
+`repair_history` is still an ingestion gap, while cluster fields are expected to stay null for
+the synthetic serverless jobs.
 
 ## Architecture
 
@@ -69,7 +75,8 @@ src/incident_triage/
   incidents.py   read incidents from mock CSV or Databricks SQL
   schema.py      Pydantic schemas for structured triage
   dedup.py       group repeated errors by message hash
-  triage.py      Claude tool-call triage + optional MLflow tracing
+  memory.py      query the synthetic resolution memory through Databricks AI Search
+  triage.py      retrieve context + Claude tool-call triage + optional MLflow tracing
   aggregate.py   group triage results by job and severity
   digest.py      format and send the email digest
   pipeline.py    orchestrate the full Stage 1 flow
@@ -132,9 +139,9 @@ the shared Databricks workspace.
 pytest
 ```
 
-Tests cover deduplication, schema behavior, and pipeline fallback behavior. They avoid network
-calls and do not require API keys. The real Claude call and Databricks read are exercised
-manually through `scripts/run_digest.py`.
+The 16 local tests cover deduplication, schemas, memory response parsing, retrieval degradation,
+and pipeline fallback behavior. They avoid network calls and do not require API keys. Real Claude,
+Databricks SQL, and AI Search checkpoints are exercised manually.
 
 ## Switching to the real Databricks table
 
@@ -153,14 +160,15 @@ pip install -e ".[databricks]"
 
 ## Roadmap
 
-Near-term improvements are focused on making the project more demonstrable and robust:
+Near-term work is focused on P9 and evidence for the portfolio:
 
 - Keep the sanitized sample digest in [docs/sample_digest.md](docs/sample_digest.md) aligned
   with the current output format.
 - Use [docs/evaluation.md](docs/evaluation.md) as the manual evaluation checklist for
   expected vs. model-produced classifications.
 - Document how to inspect MLflow traces and which run metadata matters.
-- Keep improving digest resilience when one LLM call or the SMTP send fails.
+- Add the LangGraph investigation flow without depending on serverless cluster metadata that is
+  unavailable for these synthetic jobs.
 
 Stage 2 should add retrieval only when it has useful context to retrieve, such as synthetic
 runbooks, known exception patterns, historical incident notes, or Databricks troubleshooting

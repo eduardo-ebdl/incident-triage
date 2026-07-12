@@ -19,9 +19,8 @@ Current location (moved from the `workspace.default` dev checkpoint once `CREATE
 - Delta Sync index: `observability.dev.resolution_memory_index` — verified `ONLINE_NO_PENDING_UPDATE`,
   18 rows indexed, hybrid search re-verified with the same top result (`spark-join-oom`, score `1.000`).
 
-The earlier `workspace.default.incident_triage_resolution_memory(_index)` checkpoint is stale and
-should be dropped once nothing still points at it (nothing in this repo does — `.env.example`
-already targets `observability.dev`).
+The earlier `workspace.default.incident_triage_resolution_memory(_index)` checkpoint was removed
+on July 11 after the definitive resources were verified. No repository configuration points to it.
 
 The committed corpus contains 18 synthetic error-resolution pairs. Each result has a stable
 `resolution_id`, a resolution, and a synthetic source identifier that can later be enforced by
@@ -65,12 +64,9 @@ python scripts/search_resolution_memory.py "OutOfMemoryError during a large Spar
 
 ## Stage 2 status
 
-- P8 corpus and provisioner: implemented. The development checkpoint uses
-  `workspace.default.incident_triage_resolution_memory` because the current account has only
-  `USE SCHEMA` on `observability.dev`; moving the table and index there requires `CREATE TABLE`
-  from the schema owner. The real hybrid-search checkpoint returned
-  `synthetic-runbook/spark-join-oom` first for an OOM during a large Spark join, with score
-  `1.000`.
+- P8 corpus and provisioner: implemented in the definitive `observability.dev` location. The real
+  hybrid-search checkpoint returned `synthetic-runbook/spark-join-oom` first for an OOM during a
+  large Spark join, with score `1.000`.
 - **Retrieval wired into the triage call (P4).** `triage_incident` now calls
   `search_past_resolutions(error_message)` and passes up to 3 retrieved cases into the prompt.
   The model is instructed to only fill `suggested_fix`/`sources` when a retrieved case genuinely
@@ -81,6 +77,9 @@ python scripts/search_resolution_memory.py "OutOfMemoryError during a large Spar
   configured, so Stage 1 keeps working standalone.
 - Validation: 16 local tests passed, including the seed contract, AI Search response parsing,
   and grounding degradation without network access.
+- P9 metadata preparation: `task_run_id` and `attempt_number` are populated in 46 of 65 current
+  incident rows. `repair_history` and `libraries` remain empty; serverless cluster fields are
+  expected to remain empty. The application does not consume these columns yet.
 - P9 LangGraph agent: not started. What exists today is single-shot retrieval-augmented triage,
   not an agent that decides which tools to call or investigates in a loop.
 - P10 retrieval fusion/reranking: not started.
